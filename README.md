@@ -21,9 +21,9 @@ The key innovations:
 
 2. **Multi-relational graph attention** — three edge types (PLV phase synchrony, MVAR Granger causality, SC structural connectivity) with learned per-relation attention weights and edge-attribute-aware attention.
 
-3. **Coupled edge-node bottleneck** — edge decoders operate on the trainable latent $\mathbf{z}$ via concatenation $[\mathbf{z}_i \| \mathbf{z}_j]$, creating a gradient path from the edge loss through the shared bottleneck into the node reconstruction pathway. When decoupled (edge decoders on frozen $\mathbf{h}$), the connectivity branch has identically zero effect on the anomaly score.
+3. **Coupled edge-node bottleneck** — edge decoders operate on the trainable latent $𝐳$ via concatenation $[𝐳_i \| 𝐳_j]$, creating a gradient path from the edge loss through the shared bottleneck into the node reconstruction pathway. When decoupled (edge decoders on frozen $𝐡$), the connectivity branch has identically zero effect on the anomaly score.
 
-4. **Physics-only scoring** — anomaly scores use reconstruction error on $(a_j, \omega_j, \chi^2_j)$ exclusively. Four additional connectivity-derived features shape $\mathbf{z}$ during training but are excluded from the score, preventing connectivity-derived features from diluting the dynamical anomaly signal.
+4. **Physics-only scoring** — anomaly scores use reconstruction error on $(a_j, \omega_j, \chi^2_j)$ exclusively. Four additional connectivity-derived features shape $𝐳$ during training but are excluded from the score, preventing connectivity-derived features from diluting the dynamical anomaly signal.
 
 5. **Denoising graph autoencoder** — Gaussian noise injection ($\sigma = 0.1$) on encoder input and dropout ($p = 0.3$) on the latent code replace the variational bottleneck, which collapsed in all tested configurations due to low within-HC variance of bifurcation parameters.
 
@@ -83,10 +83,10 @@ in progress...
 | $a_j$ | 2.0 | UKF | **Yes** |
 | $\omega_j$ | 1.0 | Hilbert | **Yes** |
 | $\chi^2_j$ | 1.0 | UKF fit | **Yes** |
-| PLV node strength | 0.5 | Edge aggregation | No — shapes $\mathbf{z}$ only |
-| MVAR in-strength | 0.5 | Edge aggregation | No — shapes $\mathbf{z}$ only |
-| MVAR out-strength | 0.5 | Edge aggregation | No — shapes $\mathbf{z}$ only |
-| Within-network PLV | 0.5 | Edge aggregation | No — shapes $\mathbf{z}$ only |
+| PLV node strength | 0.5 | Edge aggregation | No — shapes $𝐳$ only |
+| MVAR in-strength | 0.5 | Edge aggregation | No — shapes $𝐳$ only |
+| MVAR out-strength | 0.5 | Edge aggregation | No — shapes $𝐳$ only |
+| Within-network PLV | 0.5 | Edge aggregation | No — shapes $𝐳$ only |
 
 ### Edge Types (3 relations)
 
@@ -102,7 +102,7 @@ in progress...
 
 ### Multi-Relational Graph Attention Convolution
 
-Each GAT layer maintains separate learnable projections $W_r$ and attention vectors $\mathbf{a}_r$ for each edge relation $r \in \{\text{PLV}, \text{MVAR}, \text{SC}\}$, with edge attributes incorporated into the attention computation:
+Each GAT layer maintains separate learnable projections $W_r$ and attention vectors $𝐚_r$ for each edge relation $r \in \{\text{PLV}, \text{MVAR}, \text{SC}\}$, with edge attributes incorporated into the attention computation:
 
 $$h_j^{(l+1)} = \text{ELU}\!\left( \sum_{r \in R} \alpha_r \sum_{i \in \mathcal{N}_r(j)} \alpha_{ij}^{(r)} \, w_{ij}^{(r)} \, W_r \, h_i^{(l)} \right)$$
 
@@ -110,15 +110,15 @@ where $\alpha_r$ are learned relation-importance weights (softmax-normalized).
 
 ### Frozen Encoder (5,485 parameters)
 
-Two multi-relational GAT layers ($11 \to 32 \to 32$) with a masked residual connection produce per-ROI embeddings $\mathbf{h}_j \in \mathbb{R}^{32}$. The masked residual projects the input through `input_proj` ($11 \to 32$) but **zeros the physics features** $(a_j, \omega_j, \chi^2_j)$ — forcing the encoder to reconstruct dynamics through graph message passing rather than shortcutting via identity. A physics head ($32 \to 16 \to 1$) validates the encoder during pre-training ($R^2_{\text{graph}} = 0.964$, $R^2_{\text{roi}} = 0.616$). The encoder is frozen after pre-training.
+Two multi-relational GAT layers ($11 \to 32 \to 32$) with a masked residual connection produce per-ROI embeddings $𝐡_j \in ℝ^{32}$. The masked residual projects the input through `input_proj` ($11 \to 32$) but **zeros the physics features** $(a_j, \omega_j, \chi^2_j)$ — forcing the encoder to reconstruct dynamics through graph message passing rather than shortcutting via identity. A physics head ($32 \to 16 \to 1$) validates the encoder during pre-training ($R^2_{\text{graph}} = 0.964$, $R^2_{\text{roi}} = 0.616$). The encoder is frozen after pre-training.
 
 ### Trainable Denoising GAE (586 parameters)
 
-**Denoising:** During training, Gaussian noise ($\sigma = 0.1$) is injected on the encoder input $\mathbf{x}$, preventing the bottleneck from learning identity-like mappings.
+**Denoising:** During training, Gaussian noise ($\sigma = 0.1$) is injected on the encoder input $𝐱$, preventing the bottleneck from learning identity-like mappings.
 
-**Node path:** Deterministic projection $\mathbf{h}_j \to z_j \in \mathbb{R}^6$ → dropout ($p = 0.3$) → linear decoder ($6 \to 7$) → reconstructed $(a, \omega, \chi^2, s_\text{PLV}, s_\text{MVAR-in}, s_\text{MVAR-out}, \text{PLV}_\text{within})$.
+**Node path:** Deterministic projection $𝐡_j \to z_j \in ℝ^6$ → dropout ($p = 0.3$) → linear decoder ($6 \to 7$) → reconstructed $(a, \omega, \chi^2, s_\text{PLV}, s_\text{MVAR-in}, s_\text{MVAR-out}, \text{PLV}_\text{within})$.
 
-**Edge path (coupled):** Three MLP edge decoders predict edge existence from $[\mathbf{z}_i \| \mathbf{z}_j]$ for PLV, SC, and MVAR independently. Each MLP is $12 \to 8 \to 1$ with ELU activation. Concatenation (not absolute difference) is used because directed edges (MVAR) require asymmetric input.
+**Edge path (coupled):** Three MLP edge decoders predict edge existence from $[𝐳_i \| 𝐳_j]$ for PLV, SC, and MVAR independently. Each MLP is $12 \to 8 \to 1$ with ELU activation. Concatenation (not absolute difference) is used because directed edges (MVAR) require asymmetric input.
 
 **Graph-level loss:** Per-graph mean and standard deviation of the bifurcation parameter $a$ are reconstructed, ensuring the decoder preserves population-level distributional properties.
 
@@ -179,7 +179,7 @@ The HC train/test split is **by subject** (not session) to prevent leakage. HC h
 
 ## Key Design Decisions
 
-**Coupled edge decoders on $\mathbf{z}$ (not $\mathbf{h}$)** — Edge decoders receive the trainable latent $\mathbf{z}$ via concatenation $[\mathbf{z}_i \| \mathbf{z}_j]$, creating a gradient path: $\nabla_{\mathcal{L}_\text{edge}} \to \text{MLP}_r \to [\mathbf{z}_i, \mathbf{z}_j] \to W_z$. Three independent observations confirm functional coupling: (1) 10% improvement in HC–MDD separation ($d = 2.75 \to 3.02$) with 3.2× fewer trainable parameters; (2) inverted-U dose-response curve for $\lambda_\text{edge}$ peaking at 0.50; (3) optimal $d_z$ shifts from 4 (decoupled) to 6 (coupled). ROI ranking correlation between coupled and decoupled: $\rho = 0.952$.
+**Coupled edge decoders on $𝐳$ (not $𝐡$)** — Edge decoders receive the trainable latent $𝐳$ via concatenation $[𝐳_i \| 𝐳_j]$, creating a gradient path: $\nabla_{\mathcal{L}_\text{edge}} \to \text{MLP}_r \to [𝐳_i, 𝐳_j] \to W_z$. Three independent observations confirm functional coupling: (1) 10% improvement in HC–MDD separation ($d = 2.75 \to 3.02$) with 3.2× fewer trainable parameters; (2) inverted-U dose-response curve for $\lambda_\text{edge}$ peaking at 0.50; (3) optimal $d_z$ shifts from 4 (decoupled) to 6 (coupled). ROI ranking correlation between coupled and decoupled: $\rho = 0.952$.
 
 **Physics-only scoring (not Fisher LDA)** — An earlier design used Fisher LDA to weight anomaly score components, but this introduced circularity: scoring weights were informed by the labels being tested, inflating effect sizes by ~2.8×. The physics-only score is strictly label-free.
 
@@ -191,7 +191,7 @@ The HC train/test split is **by subject** (not session) to prevent leakage. HC h
 
 **Node-level (not graph-level) bottleneck** — Graph-level pooling into a single $z$ vector could be bypassed by the frozen encoder embeddings. Node-level bottleneck gives each ROI its own $z_j$, forcing per-ROI dynamical information through the bottleneck.
 
-**Concatenation $[\mathbf{z}_i \| \mathbf{z}_j]$ (not absolute difference)** — Directed edges (MVAR) require asymmetric input: $[\mathbf{z}_i \| \mathbf{z}_j] \neq [\mathbf{z}_j \| \mathbf{z}_i]$. Absolute difference would destroy directionality information.
+**Concatenation $[𝐳_i \| 𝐳_j]$ (not absolute difference)** — Directed edges (MVAR) require asymmetric input: $[𝐳_i \| 𝐳_j] \neq [𝐳_j \| 𝐳_i]$. Absolute difference would destroy directionality information.
 
 **Feature-weighted reconstruction** — Weights $[2, 1, 1, 0.5, 0.5, 0.5, 0.5]$ on the 7 reconstruction targets emphasize the physics features while still requiring accurate connectivity reconstruction.
 
@@ -256,8 +256,8 @@ The reversed sign on $\omega$ is theoretically predicted: MDD alters distance fr
 
 | Architecture | Trainable Params | HC–MDD $d$ | Edge decoder input |
 |-------------|-----------------|-----------|-------------------|
-| **Coupled** (edge on $\mathbf{z}$) | 586 | +3.02 | $[\mathbf{z}_i \| \mathbf{z}_j]$, dim 12 |
-| Decoupled (edge on $\mathbf{h}$) | 1,882 | +2.75 | $\|\mathbf{h}_i - \mathbf{h}_j\|$, dim 32 |
+| **Coupled** (edge on $𝐳$) | 586 | +3.02 | $[𝐳_i \| 𝐳_j]$, dim 12 |
+| Decoupled (edge on $𝐡$) | 1,882 | +2.75 | $\|𝐡_i - 𝐡_j\|$, dim 32 |
 
 Coupled architecture achieves higher separation with 3.2× fewer trainable parameters.
 
