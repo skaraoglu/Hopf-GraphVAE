@@ -1,5 +1,11 @@
 <div align="center">
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/hero_hopf.png">
+  <img alt="Neural Criticality in MDD vs Healthy Control"
+       src="docs/hero_hopf.png" width="900">
+</picture>
+
 # Hopf-GAE
 ## Physics-Informed Graph Neural Network for Normative Brain Dynamics
 
