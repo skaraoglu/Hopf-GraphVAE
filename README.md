@@ -3,7 +3,7 @@
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/hero_hopf.png">
   <img alt="Neural Criticality in MDD vs Healthy Control"
-       src="docs/hero_hopf.png" width="900">
+       src="docs/hero_hopf.png" width="1200">
 </picture>
 
 # Hopf-GAE
