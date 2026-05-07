@@ -1,9 +1,9 @@
 <div align="center">
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/hero_hopf.png">
+  <source media="(prefers-color-scheme: dark)" srcset="docs/hopf_arch_d7v2(2).png">
   <img alt="Neural Criticality in MDD vs Healthy Control"
-       src="docs/hero_hopf.png" width="1200">
+       src="docs/hopf_arch_d7v2(2).png" width="1200">
 </picture>
 
 # Hopf-GAE
@@ -70,7 +70,7 @@ The key innovations:
 ## Architecture
 
 <div align="center">
-<img src="docs/architecture_dark.png" alt="Hopf-GAE Architecture" width="600"/>
+<img src="docs/hopf_arch_d6v5.png" alt="Hopf-GAE Architecture" width="900"/>
 </div>
 
 ### Node Features (11-dimensional per ROI)
